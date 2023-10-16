@@ -19,13 +19,7 @@ class Sprite{
 
     draw(){
         if(this.image){
-            ctx.drawImage(
-                this.image,
-                this.position.x,
-                this.position.y,
-                this.width,
-                this.height
-            );
+            ctx.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
         } else {
             ctx.fillStyle = "white";
             ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
