@@ -1,38 +1,114 @@
 const gravity = 0.6;
 
-const backgroundSpritePath = "../img/background.png";
+const backgroundSpritePath = "../img/background/background.png";
+const defaultObjectSpritePath = "../img/objects/square.svg";
 
 class Sprite{
-    constructor({position, velocity, dimensions, source}){
+    constructor({position, velocity, source, scale, offset, sprites}){
         this.position = position;
         this.velocity = velocity;
-        this.width = dimensions?.width;
-        this.height = dimensions?.height;
+        this.scale = scale || 1;
+        this.image = new Image();
+        this.image.src = source || defaultObjectSpritePath;
+        this.width = this.image.width * this.scale;
+        this.height = this.image.height * this.scale;
+        this.offset = offset || {x: 0, y: 0};
+        this.sprites = sprites || {idle: {src: this.image.src, totalSpriteFrames: 1, framesPerSpriteFrame: 1}};
+        this.currentSprite = this.sprites.idle;
+        this.elapsedTime = 0;
+        this.currentSpriteFrame = 0;
+        this.totalSpriteFrames = this.currentSprite.totalSpriteFrames;
+        this.framesPerSpriteFrame = this.sprites.idle.framesPerSpriteFrame;
+    };
 
-        if(source){
-            this.image = new Image();
-            this.image.src = source;
-            this.width = this.image.width;
-            this.height = this.image.height; 
+    setSprite(sprite){
+        this.currentSprite = this.sprites[sprite];
+
+        if(!this.currentSprite){
+            this.currentSprite = this.sprites.idle;
+        }
+    };
+
+    loadSprite(){
+        let previousSprite = this.image.src;
+
+        this.image = new Image();
+        this.image.src  = this.currentSprite.src;
+        this.width = this.image.width * this.scale;
+        this.height = this.image.height * this.scale;
+        this.totalSpriteFrames = this.currentSprite.totalSpriteFrames;
+
+        let newSprite = this.image.src;
+
+        if(previousSprite != newSprite){
+            let previousSpriteImage = new Image();
+            previousSprite.src = previousSprite;
+
+            this.position.y += (previousSpriteImage.height - this.image.height) * this.scale;
         };
     };
 
     draw(){
-        if(this.image){
-            ctx.drawImage(this.image, this.position.x, this.position.y, this.width, this.height);
-        } else {
-            ctx.fillStyle = "white";
-            ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        };
+        ctx.imageSmoothingEnabled = false;
+        ctx.save();
 
-        if(this.isAttacking){
-            ctx.fillStyle = "red";
-            ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
+        ctx.translate(this.position.x + this.offset.x, this.position.y + this.offset.y);
+
+        ctx.drawImage(
+            this.image,
+            this.currentSpriteFrame * this.image.width / this.totalSpriteFrames,
+            0,
+            this.image.width / this.totalSpriteFrames,
+            this.image.height,
+            0,
+            0,
+            this.width / this.totalSpriteFrames,
+            this.height,
+        );
+
+        ctx.restore();
+    };
+
+    animate(){
+        this.elapsedTime++;
+
+        if(this.elapsedTime >= this.framesPerSpriteFrame){
+            this.currentSpriteFrame++;
+
+            if(this.currentSpriteFrame >= this.totalSpriteFrames){
+                this.currentSpriteFrame = 0;
+            };
+
+            this.elapsedTime = 0;
         };
     };
 
     update(){
+        this.draw();
+        this.animate();
+    };
+};
 
+class Fighter extends Sprite {
+    constructor({position, velocity, scale, sprites}){
+        super({
+            position,
+            velocity,
+            scale,
+            sprites
+        });
+
+        this.velocity = velocity;
+
+        this.isAttacking;
+        this.attackCooldown = 500;
+        this.onAttackCooldown;
+
+        this.lastKeyPressed;
+        this.onGround;
+    };
+
+    gravity(){
         if(Math.ceil(this.position.y + this.height >= canvas.height)){
             this.onGround = true;
         } else {
@@ -48,11 +124,13 @@ class Sprite{
 
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
+    };
 
-        this.attackBox.position.x = this.position.x;
-        this.attackBox.position.y = this.position.y;
-
+    update(){
+        this.gravity();
+        this.loadSprite();
         this.draw();
+        this.animate();
     };
 
     attack(){
@@ -76,36 +154,6 @@ class Sprite{
     };
 };
 
-class Fighter extends Sprite {
-    constructor({position, velocity, dimensions}){
-        super({
-            position,
-            velocity,
-            dimensions
-        });
-
-        this.velocity = velocity;
-        this.width = dimensions.width;
-        this.height = dimensions.height;
-
-        this.attackBox = {
-            position: {
-                x: this.position.x,
-                y: this.position.y
-            },
-            width: 125,
-            height: 50
-        };
-
-        this.isAttacking;
-        this.attackCooldown = 500;
-        this.onAttackCooldown;
-
-        this.lastKeyPressed;
-        this.onGround;
-    };
-};
-
 const player = new Fighter({
     position:{
         x: 0,
@@ -115,9 +163,13 @@ const player = new Fighter({
         x: 0,
         y: 0
     },
-    dimensions:{
-        width: 50,
-        height: 150
+    scale: 4,
+    sprites: {
+        idle:{
+            src: "../img/player/idle.png",
+            totalSpriteFrames: 11,
+            framesPerSpriteFrame: 18
+        }
     }
 });
 

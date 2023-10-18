@@ -60,6 +60,10 @@ window.addEventListener("keyup", e => {
 });
 
 function handleControls(){
+    player.setSprite("idle");
+
+    if(!player.onGround) player.setSprite("jumping")
+    if(player.isAttacking) player.setSprite("attacking")
 
     movement();
     attacks();
@@ -69,15 +73,25 @@ function handleControls(){
 
         if(keys.a.pressed && ["a", "ArrowLeft"].includes(player.lastKeyPressed)) {
             player.velocity.x = -1.5 * 3.4;
+
+            if(!player.onGround) return
+
+            player.setSprite("running");
         };
         
         if(keys.d.pressed && ["d", "ArrowRight"].includes(player.lastKeyPressed)) {
             player.velocity.x = 1.5 * 3.4;
+
+            if(!player.onGround) return
+
+            player.setSprite("running");
         };
         
         if(keys.w.pressed && !keys.w.hold) {
             player.jump();
             keys.w.hold = true;
+
+            player.setSprite("jumping");
         };
     };
 
